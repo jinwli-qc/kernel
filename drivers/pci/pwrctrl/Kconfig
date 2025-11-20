@@ -26,6 +26,7 @@ config PCI_PWRCTRL_TC9563
 	tristate "PCI Power Control driver for TC9563 PCIe switch"
 	select PCI_PWRCTRL
 	default m if ARCH_QCOM
+	depends on I2C
 	help
 	  Say Y here to enable the PCI Power Control driver of TC9563 PCIe
 	  switch.

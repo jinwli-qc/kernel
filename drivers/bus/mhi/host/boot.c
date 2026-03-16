@@ -584,9 +584,12 @@ skip_req_fw:
 	 * device transitioning into MHI READY state
 	 */
 	if (fw_load_type == MHI_FW_LOAD_FBC) {
-		dev_dbg(dev, "standard_elf_image:%s\n",
-			(mhi_cntrl->standard_elf_image ? "True" : "False"));
-		if (mhi_cntrl->standard_elf_image) {
+		/*
+		 * Some FW combine two separate ELF images (SBL + WLAN FW) in a single
+		 * file. Hence, check for the existence of the second ELF header after
+		 * SBL. If present, load the second image separately.
+		 */
+		if (!memcmp(fw_data + mhi_cntrl->sbl_size, ELFMAG, SELFMAG)) {
 			fw_data += mhi_cntrl->sbl_size;
 			fw_sz -= mhi_cntrl->sbl_size;
 		}

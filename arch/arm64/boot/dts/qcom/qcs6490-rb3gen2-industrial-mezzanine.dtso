@@ -32,6 +32,10 @@
 	};
 };
 
+&remoteproc_wpss {
+       status = "disabled";
+};
+
 &spi11 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -279,4 +283,8 @@
 		output-enable;
 	};
 
+};
+
+&wifi {
+       status = "disabled";
 };

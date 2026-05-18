@@ -82,6 +82,38 @@
 		};
 	};
 
+	connector-3 {
+		compatible = "pcie-m2-e-connector";
+		vpcie3v3-supply = <&vreg_wcn_3p3>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				m2_e_pcie_ep: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&pcieport0_ep>;
+				};
+			};
+
+			port@3 {
+				reg = <3>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				m2_e_uart_ep: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&uart2_ep>;
+				};
+			};
+		};
+	};
+
 	dmic: audio-codec-0 {
 		compatible = "dmic-codec";
 		#sound-dai-cells = <0>;
@@ -751,6 +783,12 @@
 &pcieport0 {
 	reset-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
 	wake-gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
+
+	port {
+		pcieport0_ep: endpoint {
+			remote-endpoint = <&m2_e_pcie_ep>;
+		};
+	};
 };
 
 &pcieport1 {
@@ -993,18 +1031,10 @@
 &uart2 {
 	status = "okay";
 
-	bluetooth: bluetooth {
-		compatible = "qcom,wcn6855-bt";
-		max-speed = <3200000>;
-
-		vddrfacmn-supply = <&vreg_wcn_3p3>;
-		vddaon-supply = <&vreg_wcn_3p3>;
-		vddwlcx-supply = <&vreg_wcn_3p3>;
-		vddwlmx-supply = <&vreg_wcn_3p3>;
-		vddbtcmx-supply = <&vreg_wcn_3p3>;
-		vddrfa0p8-supply = <&vreg_wcn_3p3>;
-		vddrfa1p2-supply = <&vreg_wcn_3p3>;
-		vddrfa1p8-supply = <&vreg_wcn_3p3>;
+	port {
+		uart2_ep: endpoint {
+			remote-endpoint = <&m2_e_uart_ep>;
+		};
 	};
 };
 

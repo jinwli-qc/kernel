@@ -86,6 +86,39 @@
 		};
 	};
 
+	connector-m2 {
+		compatible = "pcie-m2-e-connector";
+		vpcie3v3-supply = <&vreg_wcn_3p3>;
+		w-disable2-gpios = <&tlmm 116 GPIO_ACTIVE_LOW>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				m2_e_pcie_ep: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&pcieport4_ep>;
+				};
+			};
+
+			port@3 {
+				reg = <3>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				m2_e_uart_ep: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&uart14_ep>;
+				};
+			};
+		};
+	};
+
 	pmic-glink {
 		compatible = "qcom,x1e80100-pmic-glink",
 			     "qcom,sm8550-pmic-glink",
@@ -508,23 +541,6 @@
 		enable-active-high;
 
 		pinctrl-0 = <&wcn_sw_en>;
-		pinctrl-names = "default";
-
-		regulator-always-on;
-		regulator-boot-on;
-	};
-
-	vreg_wcn_bt_en: regulator-wcn-bt-en {
-		compatible = "regulator-fixed";
-
-		regulator-name = "VREG_WCN_BT_EN";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
-
-		gpio = <&tlmm 116 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-
-		pinctrl-0 = <&wcn_bt_en>;
 		pinctrl-names = "default";
 
 		regulator-always-on;
@@ -1033,6 +1049,12 @@
 	reset-gpios = <&tlmm 146 GPIO_ACTIVE_LOW>;
 	wake-gpios = <&tlmm 148 GPIO_ACTIVE_LOW>;
 
+	port {
+		pcieport4_ep: endpoint {
+			remote-endpoint = <&m2_e_pcie_ep>;
+		};
+	};
+
 	wifi@0 {
 		compatible = "pci17cb,1107";
 		reg = <0x10000 0x0 0x0 0x0 0x0>;
@@ -1501,13 +1523,6 @@
 		output-low;
 	};
 
-	wcn_bt_en: wcn-bt-en-state {
-		pins = "gpio116";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-disable;
-	};
-
 	wcn_wlan_en: wcn-wlan-en-state {
 		pins = "gpio117";
 		function = "gpio";
@@ -1542,17 +1557,10 @@
 &uart14 {
 	status = "okay";
 
-	bluetooth {
-		compatible = "qcom,wcn7850-bt";
-		max-speed = <3200000>;
-
-		vddrfacmn-supply = <&vreg_wcn_3p3>;
-		vddaon-supply = <&vreg_wcn_3p3>;
-		vddwlcx-supply = <&vreg_wcn_3p3>;
-		vddwlmx-supply = <&vreg_wcn_3p3>;
-		vddrfa0p8-supply = <&vreg_wcn_3p3>;
-		vddrfa1p2-supply = <&vreg_wcn_3p3>;
-		vddrfa1p8-supply = <&vreg_wcn_3p3>;
+	port {
+		uart14_ep: endpoint {
+			remote-endpoint = <&m2_e_uart_ep>;
+		};
 	};
 };
 

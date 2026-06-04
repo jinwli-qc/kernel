@@ -74,12 +74,18 @@ static int pwrseq_pci_m2_e_uart_enable(struct pwrseq_device *pwrseq)
 {
 	struct pwrseq_pcie_m2_ctx *ctx = pwrseq_device_get_drvdata(pwrseq);
 
+	if (!ctx->w_disable2_gpio)
+		return 0;
+
 	return gpiod_set_value_cansleep(ctx->w_disable2_gpio, 0);
 }
 
 static int pwrseq_pci_m2_e_uart_disable(struct pwrseq_device *pwrseq)
 {
 	struct pwrseq_pcie_m2_ctx *ctx = pwrseq_device_get_drvdata(pwrseq);
+
+	if (!ctx->w_disable2_gpio)
+		return 0;
 
 	return gpiod_set_value_cansleep(ctx->w_disable2_gpio, 1);
 }
@@ -185,10 +191,15 @@ static int pwrseq_pcie_m2_match(struct pwrseq_device *pwrseq,
 	return PWRSEQ_NO_MATCH;
 }
 
+/*
+ * Table for matching UART BT variants only. The subdevice ID distinguishes
+ * UART variants from USB variants of the same chip. WCN7850 UART variant
+ * has subdevice ID 0x337c (confirmed from lspci on hamoa-iot-evk).
+ */
 static const struct pci_device_id pwrseq_m2_pci_ids[] = {
-	{ PCI_DEVICE(PCI_VENDOR_ID_QCOM, 0x1107),
+	{ PCI_DEVICE_SUB(PCI_VENDOR_ID_QCOM, 0x1107, PCI_ANY_ID, 0x337c),
 	  .driver_data = (kernel_ulong_t)"qcom,wcn7850-bt" },
-	{ PCI_DEVICE(PCI_VENDOR_ID_QCOM, 0x1103),
+	{ PCI_DEVICE_SUB(PCI_VENDOR_ID_QCOM, 0x1103, PCI_ANY_ID, 0xe105),
 	  .driver_data = (kernel_ulong_t)"qcom,wcn6855-bt" },
 	{ } /* Sentinel */
 };
@@ -391,9 +402,18 @@ static int pwrseq_pcie_m2_notify(struct notifier_block *nb, unsigned long action
 	switch (action) {
 	case BUS_NOTIFY_ADD_DEVICE:
 		if (pci_match_id(pwrseq_m2_pci_ids, pdev)) {
+			/* UART BT variant — create serdev */
 			ret = __pwrseq_pcie_m2_create_serdev(ctx, pdev);
 			if (ret)
 				return notifier_from_errno(ret);
+		} else {
+			/*
+			 * USB BT variant — assert W_DISABLE2# so that the USB
+			 * BT device can enumerate. The UART init path may have
+			 * left the GPIO deasserted on a previous failed attempt.
+			 */
+			if (ctx->w_disable2_gpio)
+				gpiod_set_value_cansleep(ctx->w_disable2_gpio, 0);
 		}
 		break;
 	case BUS_NOTIFY_REMOVED_DEVICE:

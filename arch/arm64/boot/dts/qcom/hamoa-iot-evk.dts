@@ -106,6 +106,17 @@
 				};
 			};
 
+			port@2 {
+				reg = <2>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				m2_e_usb_ep: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&usb_2_m2_ep>;
+				};
+			};
+
 			port@3 {
 				reg = <3>;
 				#address-cells = <1>;
@@ -1622,6 +1633,17 @@
 
 &usb_1_ss2_qmpphy_out {
 	remote-endpoint = <&retimer_ss2_ss_in>;
+};
+
+&usb_2 {
+	port@1 {
+		reg = <1>;
+
+		usb_2_m2_ep: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&m2_e_usb_ep>;
+		};
+	};
 };
 
 &usb_2_hsphy {

@@ -5414,7 +5414,9 @@
 
 			status = "disabled";
 
-			port {
+			port@0 {
+				reg = <0>;
+
 				usb_2_dwc3_hs: endpoint {
 				};
 			};

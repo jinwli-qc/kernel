@@ -74,6 +74,8 @@ static int pwrseq_pci_m2_e_bt_enable(struct pwrseq_device *pwrseq)
 {
 	struct pwrseq_pcie_m2_ctx *ctx = pwrseq_device_get_drvdata(pwrseq);
 
+	pr_err("pwrseq-pcie-m2: BT GPIO LOW (W_DISABLE2# asserted)\n");
+	dump_stack();
 	return gpiod_set_value_cansleep(ctx->w_disable2_gpio, 0);
 }
 
@@ -81,6 +83,8 @@ static int pwrseq_pci_m2_e_bt_disable(struct pwrseq_device *pwrseq)
 {
 	struct pwrseq_pcie_m2_ctx *ctx = pwrseq_device_get_drvdata(pwrseq);
 
+	pr_err("pwrseq-pcie-m2: BT GPIO HIGH (W_DISABLE2# deasserted)\n");
+	dump_stack();
 	return gpiod_set_value_cansleep(ctx->w_disable2_gpio, 1);
 }
 

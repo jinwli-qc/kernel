@@ -1777,6 +1777,7 @@ static int qca_regulator_init(struct hci_uart *hu)
 	qcadev = serdev_device_get_drvdata(hu->serdev);
 
 	if (!qcadev->bt_power->vregs_on) {
+		pr_err("hci_qca: vregs_on=false, calling qca_regulator_enable\n");
 		serdev_device_close(hu->serdev);
 		ret = qca_regulator_enable(qcadev);
 		if (ret)
@@ -1819,6 +1820,8 @@ static int qca_regulator_init(struct hci_uart *hu)
 	}
 
 	qca_set_speed(hu, QCA_INIT_SPEED);
+	pr_err("hci_qca: qca_regulator_init set init_speed=%u\n",
+	       qca_get_speed(hu, QCA_INIT_SPEED));
 
 	switch (soc_type) {
 	case QCA_WCN3950:
@@ -1845,6 +1848,8 @@ static int qca_power_on(struct hci_dev *hdev)
 	struct qca_serdev *qcadev;
 	struct qca_data *qca = hu->priv;
 	int ret = 0;
+
+	pr_err("hci_qca: qca_power_on called\n");
 
 	/* Non-serdev device usually is powered by external power
 	 * and don't need additional action in driver for power on
@@ -1998,6 +2003,7 @@ retry:
 	/* Setup user speed if needed */
 	speed = qca_get_speed(hu, QCA_OPER_SPEED);
 	if (speed) {
+		pr_err("hci_qca: switching to oper_speed=%u\n", speed);
 		ret = qca_set_speed(hu, QCA_OPER_SPEED);
 		if (ret)
 			goto out;
@@ -2223,6 +2229,9 @@ static void qca_power_off(struct hci_uart *hu)
 	bool sw_ctrl_state;
 	struct qca_power *power;
 
+	pr_err("hci_qca: qca_power_off called\n");
+	dump_stack();
+
 	/* From this point we go into power off state. But serial port is
 	 * still open, stop queueing the IBS data and flush all the buffered
 	 * data in skb's.
@@ -2241,6 +2250,10 @@ static void qca_power_off(struct hci_uart *hu)
 	qcadev = serdev_device_get_drvdata(hu->serdev);
 	power = qcadev->bt_power;
 
+	pr_err("hci_qca: qca_power_off power=%p pwrseq=%p vregs_on=%d\n",
+	       power, power ? power->pwrseq : NULL,
+	       power ? power->vregs_on : -1);
+
 	switch (soc_type) {
 	case QCA_WCN3988:
 	case QCA_WCN3990:
@@ -2254,10 +2267,13 @@ static void qca_power_off(struct hci_uart *hu)
 	}
 
 	if (power && power->pwrseq) {
+		pr_err("hci_qca: pwrseq_power_off calling\n");
 		pwrseq_power_off(power->pwrseq);
 		set_bit(QCA_BT_OFF, &qca->flags);
 		return;
         }
+	pr_err("hci_qca: power->pwrseq is %s, skipping pwrseq_power_off\n",
+	       power ? "NULL" : "(power NULL)");
 
 	switch (soc_type) {
 	case QCA_WCN3988:
@@ -2291,6 +2307,8 @@ static int qca_hci_shutdown(struct hci_dev *hdev)
 	struct qca_data *qca = hu->priv;
 	enum qca_btsoc_type soc_type = qca_soc_type(hu);
 
+	pr_err("hci_qca: qca_hci_shutdown called\n");
+
 	hu->hdev->hw_error = NULL;
 	hu->hdev->reset = NULL;
 
@@ -2312,6 +2330,9 @@ static int qca_regulator_enable(struct qca_serdev *qcadev)
 {
 	struct qca_power *power = qcadev->bt_power;
 	int ret;
+
+	pr_err("hci_qca: qca_regulator_enable pwrseq=%p vregs_on=%d\n",
+	       power->pwrseq, power->vregs_on);
 
 	if (power->pwrseq)
 		return pwrseq_power_on(power->pwrseq);

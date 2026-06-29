@@ -894,10 +894,13 @@ int usb_hub_set_port_power(struct usb_device *hdev, struct usb_hub *hub,
 	if (hub->ports[port1 - 1]->is_superspeed && hub->ports[port1 - 1]->peer)
 		pwrseq_port = hub->ports[port1 - 1]->peer;
 
-	if (set && !pwrseq_port->pwrseq_on)
+	if (set && !pwrseq_port->pwrseq_on) {
+		pr_err("usb_hub: port%d set_port_power(%d) → pwrseq_power_on\n", port1, set);
 		ret = pwrseq_power_on(pwrseq_port->pwrseq);
-	else if (!set && pwrseq_port->pwrseq_on)
+	} else if (!set && pwrseq_port->pwrseq_on) {
+		pr_err("usb_hub: port%d set_port_power(%d) → pwrseq_power_off\n", port1, set);
 		ret = pwrseq_power_off(pwrseq_port->pwrseq);
+	}
 	if (ret)
 		return ret;
 
@@ -1765,6 +1768,31 @@ static int hub_configure(struct usb_hub *hub,
 		struct usb_port *port_dev = hub->ports[i];
 
 		pm_runtime_put(&port_dev->dev);
+	}
+
+	/*
+	 * For ports with a power sequencer but no device connected (e.g. an
+	 * M.2 E-key connector with a UART BT module), clear the NO_POWER_OFF
+	 * QoS flag so that runtime PM can suspend the port and release the
+	 * sequencer reference.  This allows other consumers sharing the same
+	 * rail (e.g. a UART BT controller) to fully cycle power when needed.
+	 * Only ports connected to a pcie-m2-e-connector have a non-NULL pwrseq,
+	 * so this does not affect ordinary USB ports.
+	 *
+	 * Set a long autosuspend delay so that the port stays powered long
+	 * enough for any co-located UART consumer (e.g. a BT controller) to
+	 * complete its first setup before the sequencer reference is released.
+	 */
+	for (i = 0; i < hdev->maxchild; i++) {
+		struct usb_port *port_dev = hub->ports[i];
+
+		if (port_dev->pwrseq && !port_dev->child) {
+			pm_runtime_set_autosuspend_delay(&port_dev->dev, 20000);
+			pm_runtime_use_autosuspend(&port_dev->dev);
+			pm_runtime_mark_last_busy(&port_dev->dev);
+			dev_pm_qos_update_flags(&port_dev->dev,
+						PM_QOS_FLAG_NO_POWER_OFF, false);
+		}
 	}
 
 	mutex_unlock(&usb_port_peer_mutex);

@@ -380,6 +380,8 @@ static int usb_port_runtime_resume(struct device *dev)
 	int port1 = port_dev->portnum;
 	int retval;
 
+	pr_err("usb_port: port%d runtime_resume → set_port_power(true)\n", port1);
+
 	if (!hub)
 		return -EINVAL;
 	if (hub->in_reset) {
@@ -444,11 +446,15 @@ static int usb_port_runtime_suspend(struct device *dev)
 		return -EBUSY;
 
 	if (dev_pm_qos_flags(&port_dev->dev, PM_QOS_FLAG_NO_POWER_OFF)
-			== PM_QOS_FLAGS_ALL)
+			== PM_QOS_FLAGS_ALL) {
+		pr_err("usb_port: port%d runtime_suspend blocked by NO_POWER_OFF\n", port1);
 		return -EAGAIN;
+	}
 
 	if (usb_port_block_power_off)
 		return -EBUSY;
+
+	pr_err("usb_port: port%d runtime_suspend → set_port_power(false)\n", port1);
 
 	retval = usb_autopm_get_interface(intf);
 	if (retval < 0)
@@ -854,6 +860,8 @@ int usb_hub_create_port_device(struct usb_hub *hub, int port1)
 		goto err_put_kn;
 	}
 
+	pr_err("usb_port: port%d create_port_device → pwrseq_power_on\n",
+	       port_dev->portnum);
 	retval = pwrseq_power_on(port_dev->pwrseq);
 	if (retval) {
 		dev_err_probe(&port_dev->dev, retval, "failed to enable power\n");
@@ -923,8 +931,10 @@ void usb_hub_remove_port_device(struct usb_hub *hub, int port1)
 	peer = port_dev->peer;
 	if (peer)
 		unlink_peers(port_dev, peer);
-	if (port_dev->pwrseq_on)
+	if (port_dev->pwrseq_on) {
+		pr_err("usb_port: port%d remove_port_device → pwrseq_power_off\n", port1);
 		pwrseq_power_off(port_dev->pwrseq);
+	}
 	pwrseq_put(port_dev->pwrseq);
 	component_del(&port_dev->dev, &connector_ops);
 	sysfs_put(port_dev->state_kn);

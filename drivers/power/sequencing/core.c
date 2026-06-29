@@ -799,6 +799,8 @@ static int pwrseq_unit_enable(struct pwrseq_device *pwrseq,
 
 	if (unit->enable_count != 0) {
 		unit->enable_count++;
+		pr_err("pwrseq core: unit '%s' enable_count -> %u\n",
+		       unit->name, unit->enable_count);
 		return 0;
 	}
 
@@ -822,6 +824,8 @@ static int pwrseq_unit_enable(struct pwrseq_device *pwrseq,
 	}
 
 	unit->enable_count++;
+	pr_err("pwrseq core: unit '%s' enable_count -> %u (GPIO toggled)\n",
+	       unit->name, unit->enable_count);
 
 	return 0;
 }
@@ -842,6 +846,8 @@ static int pwrseq_unit_disable(struct pwrseq_device *pwrseq,
 
 	if (unit->enable_count != 1) {
 		unit->enable_count--;
+		pr_err("pwrseq core: unit '%s' enable_count -> %u\n",
+		       unit->name, unit->enable_count);
 		return 0;
 	}
 
@@ -866,6 +872,8 @@ static int pwrseq_unit_disable(struct pwrseq_device *pwrseq,
 	}
 
 	unit->enable_count--;
+	pr_err("pwrseq core: unit '%s' enable_count -> 0 (GPIO toggled)\n",
+	       unit->name);
 
 	return 0;
 }
@@ -899,6 +907,8 @@ int pwrseq_power_on(struct pwrseq_desc *desc)
 	pwrseq = desc->pwrseq;
 	target = desc->target;
 	unit = target->unit;
+
+	pr_err("pwrseq core: power_on target='%s'\n", target->name);
 
 	guard(rwsem_read)(&pwrseq->rw_lock);
 	if (!device_is_registered(&pwrseq->dev))
@@ -950,6 +960,8 @@ int pwrseq_power_off(struct pwrseq_desc *desc)
 
 	pwrseq = desc->pwrseq;
 	unit = desc->target->unit;
+
+	pr_err("pwrseq core: power_off target='%s'\n", desc->target->name);
 
 	guard(rwsem_read)(&pwrseq->rw_lock);
 	if (!device_is_registered(&pwrseq->dev))
